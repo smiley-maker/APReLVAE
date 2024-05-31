@@ -10,7 +10,7 @@ import warnings
 from aprel.basics import Trajectory, TrajectorySet
 from aprel.learning import Belief, SamplingBasedBelief, User, SoftmaxUser
 from aprel.learning import Query, PreferenceQuery, WeakComparisonQuery, FullRankingQuery
-from aprel.querying import mutual_information, volume_removal, disagreement, regret, random, thompson
+from aprel.querying import mutual_information, volume_removal, disagreement, regret, random, thompson, variational
 from aprel.utils import kMedoids, dpp_mode, default_query_distance
 
 
@@ -168,6 +168,7 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
                      belief: Belief,
                      initial_query: Query,
                      batch_size: int,
+                     clusters : list[int] = None,
                      **kwargs) -> Tuple[List[Query], np.array]:
         """
         Uses the greedy method to find a batch of queries by selecting the :py:attr:`batch_size` individually most optimal queries.
@@ -190,8 +191,18 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
                 best_batch = [initial_query.copy() for _ in range(batch_size)]
                 for i in range(batch_size):
                     best_batch[i].slate = self.trajectory_set[np.random.choice(self.trajectory_set.size, size=initial_query.K, replace=False)]
-                return best_batch, np.array([1. for _ in range(batch_size)])
+                return best_batch, np.array([1. for _ in range(batch_size)])                
                 
+            elif acquisition_func is variational:
+                unique_clusters = np.unique(clusters)
+                best_batch = [initial_query.copy() for _ in range(batch_size)]
+                for i in range(batch_size):
+                    # We want to select a random cluster and then a random trajectory
+                    cluster = np.random.choice(unique_clusters)
+                    cluster_indices = np.where(clusters == cluster)[0]
+                    best_batch[i].slate = self.trajectory_set[np.random.choice(cluster_indices)]
+                return best_batch, np.array([1. for _ in range(batch_size)])
+            
             elif acquisition_func is thompson and isinstance(belief, SamplingBasedBelief):
                 subsets = np.array([list(tup) for tup in itertools.combinations(np.arange(belief.num_samples), initial_query.K)])
                 if len(subsets) < batch_size:
