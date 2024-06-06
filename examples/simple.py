@@ -39,13 +39,13 @@ true_user = aprel.HumanUser(delay=0.5)
 
 params = {'weights': aprel.util_funs.get_random_normalized_vector(features_dim)}
 user_model = aprel.SoftmaxUser(params)
-belief = aprel.SamplingBasedBelief(user_model, [], params)
+belief = aprel.SamplingBasdBelief(user_model, [], params)
 print('Estimated user parameters: ' + str(belief.mean))
                                        
 query = aprel.PreferenceQuery(trajectory_set[:2])
 
 for query_no in range(10):
-    queries, objective_values = query_optimizer.optimize('mutual_information', belief, query)
+    queries, objective_values = query_optimizer.optimize('', belief, query)
     print('Objective Value: ' + str(objective_values[0]))
     
     responses = true_user.respond(queries[0])

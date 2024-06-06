@@ -4,6 +4,7 @@ from typing import List, Tuple, Union
 import time
 import numpy as np
 from moviepy.editor import VideoFileClip
+import matplotlib.pyplot as plt
 
 from aprel.basics import Environment
 
@@ -26,12 +27,15 @@ class Trajectory:
         trajectory (List[Tuple[numpy.array, numpy.array]]): The sequence of state-action pairs.
         features (numpy.array): Features of the trajectory.
         clip_path (str): The path to the video clip that keeps the visualization of the trajectory.
+        histogram (str): Whether to visualize trajectory reward feature histogram. 
     """
-    def __init__(self, env: Environment, trajectory: List[Tuple[np.array, np.array]], clip_path: str = None):
+    def __init__(self, env: Environment, trajectory: List[Tuple[np.array, np.array]], clip_path: str = None, num_bins : int = None, bin_labels : list[str] = None):
         self.trajectory = trajectory
         self.features = env.features(trajectory)
         self.clip_path = clip_path
-        
+        self.num_bins = num_bins
+        self.bin_labels = bin_labels
+
     def __getitem__(self, t: int) -> Tuple[np.array, np.array]:
         """Returns the state-action pair at time step t of the trajectory."""
         return self.trajectory[t]
@@ -53,9 +57,8 @@ class Trajectory:
             clip.close()
         else:
             print('Headless mode is on. Printing the trajectory information.')
-            #print(self.trajectory)
             print('Features for this trajectory are: ' + str(self.features))
-
+    
 
 class TrajectorySet:
     """

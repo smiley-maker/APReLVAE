@@ -28,6 +28,7 @@ class QueryOptimizer:
                                       'disagreement': disagreement,
                                       'regret': regret,
                                       'random': random,
+                                      'variational': variational,
                                       'thompson': thompson}
 
 
@@ -80,6 +81,7 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
                  initial_query: Query,
                  batch_size: int = 1,
                  optimization_method: str = 'exhaustive_search',
+                 clusters : list[int] = None,
                  **kwargs) -> Tuple[List[Query], np.array]:
         """
         This function generates the optimal query or the batch of queries to ask to the user given a belief
@@ -127,9 +129,9 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
             optimization_method = 'exhaustive_search'
                  
         if optimization_method == 'exhaustive_search':
-            return self.exhaustive_search(acquisition_func, belief, initial_query, **kwargs)
+            return self.exhaustive_search(acquisition_func, belief, initial_query, clusters=clusters, **kwargs)
         elif optimization_method == 'greedy':
-            return self.greedy_batch(acquisition_func, belief, initial_query, batch_size, **kwargs)
+            return self.greedy_batch(acquisition_func, belief, initial_query, batch_size, clusters=clusters, **kwargs)
         elif optimization_method == 'medoids':
             return self.medoids_batch(acquisition_func, belief, initial_query, batch_size, **kwargs)
         elif optimization_method == 'boundary_medoids':
@@ -145,6 +147,7 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
                           acquisition_func: Callable,
                           belief: Belief,
                           initial_query: Query,
+                          clusters : list[int] = None,
                           **kwargs) -> Tuple[List[Query], np.array]:
         """
         Searches over the possible queries to find the singular most optimal query.
@@ -161,7 +164,7 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
                     - List[Query]: The optimal query as a list of one :class:`.Query`.
                     - numpy.array: An array of floats that keep the acquisition function value corresponding to the output query.
         """
-        return self.greedy_batch(acquisition_func, belief, initial_query, batch_size=1, **kwargs)
+        return self.greedy_batch(acquisition_func, belief, initial_query, batch_size=1, clusters=clusters, **kwargs)
 
     def greedy_batch(self,
                      acquisition_func: Callable,
@@ -197,10 +200,22 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
                 unique_clusters = np.unique(clusters)
                 best_batch = [initial_query.copy() for _ in range(batch_size)]
                 for i in range(batch_size):
-                    # We want to select a random cluster and then a random trajectory
+                    # We want to select two random clusters and one trajectory from each cluster
+                    # slate gets both. 
+                    # Pick first trajectory:
                     cluster = np.random.choice(unique_clusters)
-                    cluster_indices = np.where(clusters == cluster)[0]
-                    best_batch[i].slate = self.trajectory_set[np.random.choice(cluster_indices)]
+                    cluster_indices = np.where(clusters==cluster)[0]
+                    t1 = int(np.random.choice(cluster_indices))
+
+                    # Pick second trajectory
+                    # Remove first cluster from list to ensure we don't pick the same cluster again.
+                    unique_clusters = np.delete(unique_clusters, np.where(unique_clusters == cluster))
+                    cluster2 = np.random.choice(unique_clusters)
+                    cluster_indices2 = np.where(clusters==cluster2)[0]
+                    t2 = int(np.random.choice(cluster_indices2))
+
+                    # Add both trajectories to slate
+                    best_batch[i].slate = [self.trajectory_set[t1], self.trajectory_set[t2]] 
                 return best_batch, np.array([1. for _ in range(batch_size)])
             
             elif acquisition_func is thompson and isinstance(belief, SamplingBasedBelief):

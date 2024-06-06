@@ -10,6 +10,7 @@ from copy import deepcopy
 import itertools
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 from aprel.basics import Trajectory, TrajectorySet
 
@@ -144,15 +145,30 @@ class PreferenceQuery(Query):
         Returns:
             int: The response of the user.
         """
+        fig, ax = plt.subplots()
         for i in range(self.K):
             print('Playing trajectory #' + str(i))
             time.sleep(delay)
             self.slate[i].visualize()
+            # Instead of visualizing the histogram plots one at a time, 
+            # I want to get both and plot on the same plot. 
+            if i >= 1:
+                ax.bar(x=self.slate[i].bin_labels, height=self.slate[i].features, bottom=self.slate[i-1].features, label=f"Trajectory {i}")
+            else:
+                ax.bar(x=self.slate[i].bin_labels, height=self.slate[i].features, label=f"Trajectory {i}")
+        ax.set_title("Trajectory Histogram Comparison")
+        ax.set_xlabel("Terrain Type")
+        ax.set_ylabel("Terrain Frequency over Trajectory")
+        ax.legend()
+        fig.show()
+
+
         selection = None
         while selection is None:
             selection = input('Which trajectory is the best? Enter a number: [0-' + str(self.K-1) + ']: ')
             if not isinteger(selection) or int(selection) not in self.response_set:
                 selection = None
+        plt.close()
         return int(selection)
             
 
