@@ -46,5 +46,6 @@ class Environment:
 
 class NonGymEnvironment:
     def __init__(self, feature_func: Callable):
+        # Features for terrain weights
         self.features = feature_func
-        
+ 

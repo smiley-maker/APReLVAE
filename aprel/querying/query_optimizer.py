@@ -6,11 +6,12 @@ import itertools
 import numpy as np
 from scipy.spatial import ConvexHull
 import warnings
+import copy
 
 from aprel.basics import Trajectory, TrajectorySet
 from aprel.learning import Belief, SamplingBasedBelief, User, SoftmaxUser
 from aprel.learning import Query, PreferenceQuery, WeakComparisonQuery, FullRankingQuery
-from aprel.querying import mutual_information, volume_removal, disagreement, regret, random, thompson, variational
+from aprel.querying import mutual_information, volume_removal, disagreement, regret, random, thompson, variational, variational_info
 from aprel.utils import kMedoids, dpp_mode, default_query_distance
 
 
@@ -29,6 +30,7 @@ class QueryOptimizer:
                                       'regret': regret,
                                       'random': random,
                                       'variational': variational,
+                                      'variational_info': variational_info,
                                       'thompson': thompson}
 
 
@@ -48,6 +50,7 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
     def __init__(self, trajectory_set: TrajectorySet):
         super(QueryOptimizerDiscreteTrajectorySet, self).__init__()
         self.trajectory_set = trajectory_set
+        self.subsets = np.array([])
         
     def argplanner(self, user: User) -> int:
         """
@@ -217,6 +220,41 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
                     # Add both trajectories to slate
                     best_batch[i].slate = [self.trajectory_set[t1], self.trajectory_set[t2]] 
                 return best_batch, np.array([1. for _ in range(batch_size)])
+            
+            elif acquisition_func is variational_info:
+                # instead of pairing every trajectory with every other trajectory, 
+                # i want to pair every trajectory in a cluster with trajectories in 
+                # different clusters. 
+                # Generate valid subsets for any K ensuring different clusters
+                print(self.subsets.size)
+                if self.subsets.size == 0:
+                    print("Getting subsets")
+                    indices = np.arange(len(clusters))
+                    subsets = []
+
+                    for comb in itertools.combinations(indices, initial_query.K):
+                        if len(set(clusters[idx] for idx in comb)) == initial_query.K:
+                            subsets.append(comb)
+
+                    self.subsets = np.array(subsets)
+                    if len(self.subsets) < batch_size:
+                        batch_size = len(self.subsets)
+                        warnings.warn('The number of possible queries is smaller than the batch size. Automatically reducing the batch size.')
+
+                # I kind of think there should be a way to just start here
+                # Are the subsets ever going to change? 
+                vals = []
+                for ids in self.subsets:
+                    curr_query = initial_query.copy()
+                    curr_query.slate = self.trajectory_set[ids]
+                    vals.append(acquisition_func(belief, curr_query, **kwargs))
+                vals = np.array(vals)
+                inds = np.argpartition(vals, -batch_size)[-batch_size:]
+                
+                best_batch = [initial_query.copy() for _ in range(batch_size)]
+                for i in range(batch_size):
+                    best_batch[i].slate = self.trajectory_set[self.subsets[inds[i]]]
+                return best_batch, vals[inds]
             
             elif acquisition_func is thompson and isinstance(belief, SamplingBasedBelief):
                 subsets = np.array([list(tup) for tup in itertools.combinations(np.arange(belief.num_samples), initial_query.K)])

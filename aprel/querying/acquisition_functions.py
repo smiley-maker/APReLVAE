@@ -157,3 +157,6 @@ def variational():
     This function does nothing, but is added so that :py:mod:`aprel.querying.query_optimizer` can use it as a check. 
     """
     pass # query optimizer handles vae querying -- it is computationally more efficient
+
+def variational_info(belief: Belief, query: Query, **kwargs) -> float:
+    return mutual_information(belief, query)

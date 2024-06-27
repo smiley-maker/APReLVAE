@@ -101,7 +101,7 @@ class Demonstration(QueryWithResponse):
             assert(np.all(np.isclose(query.initial_state, initial_state))), 'Mismatch between the query and the response for the demonstration.'
         super(Demonstration, self).__init__(query)
         self.trajectory = trajectory
-        self.features = trajectory.features
+        self.features = trajectory.features[0]
 
 
 class PreferenceQuery(Query):
@@ -147,15 +147,16 @@ class PreferenceQuery(Query):
         """
         fig, ax = plt.subplots()
         for i in range(self.K):
-            print('Playing trajectory #' + str(i))
-            time.sleep(delay)
-            self.slate[i].visualize()
+#            print('Playing trajectory #' + str(i))
+#            time.sleep(delay)
+#            self.slate[i].visualize()
             # Instead of visualizing the histogram plots one at a time, 
             # I want to get both and plot on the same plot. 
+            
             if i >= 1:
-                ax.bar(x=self.slate[i].bin_labels, height=self.slate[i].features, bottom=self.slate[i-1].features, label=f"Trajectory {i}")
+                ax.bar(x=self.slate[i].bin_labels, height=self.slate[i].features[0], bottom=self.slate[i-1].features[0], label=f"Trajectory {i}")
             else:
-                ax.bar(x=self.slate[i].bin_labels, height=self.slate[i].features, label=f"Trajectory {i}")
+                ax.bar(x=self.slate[i].bin_labels, height=self.slate[i].features[0], label=f"Trajectory {i}")
         ax.set_title("Trajectory Histogram Comparison")
         ax.set_xlabel("Terrain Type")
         ax.set_ylabel("Terrain Frequency over Trajectory")
@@ -243,11 +244,11 @@ class WeakComparisonQuery(Query):
             time.sleep(delay)
             self.slate[i].visualize()
         selection = None
-        while selection is None:
-            selection = input('Which trajectory is the best? Enter a number (-1 for "About Equal"): ')
-            if not isinteger(selection) or int(selection) not in self.response_set:
-                selection = None
-        return int(selection)
+#        while selection is None:
+#            selection = input('Which trajectory is the best? Enter a number (-1 for "About Equal"): ')
+#            if not isinteger(selection) or int(selection) not in self.response_set:
+#                selection = None
+#        return int(selection)
 
 
 class WeakComparison(QueryWithResponse):

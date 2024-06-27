@@ -78,7 +78,7 @@ class TrajectorySet:
     """
     def __init__(self, trajectories: List[Trajectory]):
         self.trajectories = trajectories
-        self.features_matrix = np.array([trajectory.features for trajectory in self.trajectories])
+        self.features_matrix = np.array([trajectory.features[0] for trajectory in self.trajectories])
 
     def __getitem__(self, idx: Union[int, List[int], np.array]):
         if isinstance(idx, list) or type(idx).__module__ == np.__name__:
