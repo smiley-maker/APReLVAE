@@ -226,9 +226,7 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
                 # i want to pair every trajectory in a cluster with trajectories in 
                 # different clusters. 
                 # Generate valid subsets for any K ensuring different clusters
-                print(self.subsets.size)
-                if self.subsets.size == 0:
-                    print("Getting subsets")
+                if self.subsets.size == 0:# or self.subsets.size < len(self.trajectory_set):
                     indices = np.arange(len(clusters))
                     subsets = []
 
@@ -244,6 +242,7 @@ class QueryOptimizerDiscreteTrajectorySet(QueryOptimizer):
                 # I kind of think there should be a way to just start here
                 # Are the subsets ever going to change? 
                 vals = []
+                print(self.trajectory_set)
                 for ids in self.subsets:
                     curr_query = initial_query.copy()
                     curr_query.slate = self.trajectory_set[ids]
